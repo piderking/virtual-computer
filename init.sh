@@ -1,23 +1,26 @@
 #!/usr/bin/env bash
 set -e
 
-# Use Railway-assigned port
 NOVNC_PORT="${PORT:-6080}"
 
-# VNC password (runtime secret)
+# Create VNC password (required)
 mkdir -p ~/.vnc
-if [[ -n "$NOVNC_PASSWORD" ]]; then
-  echo "$NOVNC_PASSWORD" | vncpasswd -f > ~/.vnc/passwd
-  chmod 600 ~/.vnc/passwd
-else
-  echo "⚠️  NOVNC_PASSWORD not set – VNC is unsecured"
+
+if [[ -z "$NOVNC_PASSWORD" ]]; then
+  echo "ERROR: NOVNC_PASSWORD is required"
+  exit 1
 fi
 
-# Start X / window manager
-vncserver :0 -localhost no -geometry 1280x800 -SecurityTypes None
+echo "$NOVNC_PASSWORD" | vncpasswd -f > ~/.vnc/passwd
+chmod 600 ~/.vnc/passwd
+
+# Start VNC server (LOCAL ONLY — this is critical)
+vncserver :0 -geometry 1280x800
+
+# Start window manager
 fluxbox &
 
-# noVNC
-/usr/share/novnc/utils/novnc_proxy \
+# Expose desktop via noVNC (public)
+exec /usr/share/novnc/utils/novnc_proxy \
   --vnc localhost:5900 \
   --listen "$NOVNC_PORT"
