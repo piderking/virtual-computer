@@ -8,6 +8,8 @@ ENV DISPLAY=:0
 # Install essentials, VNC, Fluxbox, fonts, clipboard, Orange dependencies
 RUN apt-get update && apt-get install -y \
     tigervnc-standalone-server \
+    tigervnc-common \
+    dbus-x11 \
     fluxbox \
     fbpanel \
     xterm \
@@ -21,6 +23,9 @@ RUN apt-get update && apt-get install -y \
     locales \
     python3 \
     python3-pip \
+    python3-pyqt5 \
+    python3-pyqt5.qtsvg \
+    python3-pyqt5.qtwebkit \
     && rm -rf /var/lib/apt/lists/*
 
 # Set locale
