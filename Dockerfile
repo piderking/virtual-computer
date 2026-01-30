@@ -1,46 +1,58 @@
-ARG MINIFORGE_VERSION=24.11.3-0
-FROM condaforge/miniforge3:${MINIFORGE_VERSION}
-
-ARG TIGERVNC_VERSION=1.10.1+dfsg-3ubuntu0.20.04.1
-ARG FLUXBOX_VERSION=1.3.5-2build2
-ARG UNZIP_VERSION=6.0-25ubuntu1.1
-ARG NOVNC_VERSION=1.5.0
-ARG ORANGE3_VERSION=3.38.1
-ARG PYTHON_VERSION=3.10
+FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
-WORKDIR /app
+ENV USER=root
+ENV HOME=/root
+ENV DISPLAY=:0
+ENV VNC_PASSWORD=railway
+ENV PORT=8080
 
-# System dependencies
+# Install essentials, VNC, Fluxbox, fonts, clipboard, Orange dependencies
 RUN apt-get update && apt-get install -y \
-    tigervnc-standalone-server=${TIGERVNC_VERSION} \
-    fluxbox=${FLUXBOX_VERSION} \
-    unzip=${UNZIP_VERSION} \
+    tigervnc-standalone-server \
+    fluxbox \
+    fbpanel \
+    xterm \
+    x11-xserver-utils \
+    xclip \
     wget \
+    unzip \
     ca-certificates \
+    fontconfig \
+    locales \
+    python3 \
+    python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
-# Install noVNC
-RUN wget https://github.com/novnc/noVNC/archive/refs/tags/v${NOVNC_VERSION}.zip && \
-    unzip v${NOVNC_VERSION}.zip -d /usr/share && \
-    mv /usr/share/noVNC-${NOVNC_VERSION} /usr/share/novnc && \
-    rm v${NOVNC_VERSION}.zip
+# Set locale
+RUN locale-gen en_US.UTF-8
+ENV LANG=en_US.UTF-8
+ENV LANGUAGE=en_US:en
+ENV LC_ALL=en_US.UTF-8
 
-ENV PATH=/usr/share/novnc/utils:$PATH
+# VNC password
+RUN mkdir -p $HOME/.vnc && \
+    echo $VNC_PASSWORD | vncpasswd -f > $HOME/.vnc/passwd && \
+    chmod 600 $HOME/.vnc/passwd
 
-# Install Orange3
-RUN conda create -n orange3 python=${PYTHON_VERSION} -y && \
-    conda install -n orange3 orange3=${ORANGE3_VERSION} "catboost=*=*cpu*" -y && \
-    conda clean -afy
+# Install Nerd Font (FiraCode) for terminal
+RUN mkdir -p /usr/share/fonts/truetype/nerdfonts && \
+    wget -qO- https://github.com/ryanoasis/nerd-fonts/releases/download/v3.0.2/FiraCode.zip \
+    | bsdtar -xvf- -C /usr/share/fonts/truetype/nerdfonts && \
+    fc-cache -fv
 
-ENV PATH=/opt/conda/envs/orange3/bin:$PATH
-ENV DISPLAY=:0
+# Install Orange (latest stable via pip)
+RUN pip3 install --no-cache-dir orange3
 
-# Copy app data (optional)
-# If volume...
-# COPY ./data/ /data/
+# Copy startup script
+COPY init.sh /init.sh
+RUN chmod +x /init.sh
 
-# Init script
-COPY --chmod=755 init.sh /app/init.sh
+# Mount volume
+VOLUME ["/data"]
 
-ENTRYPOINT ["/app/init.sh"]
+# Expose Railway port
+EXPOSE $PORT
+
+# Start container
+CMD ["/init.sh"]
