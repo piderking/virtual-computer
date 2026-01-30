@@ -37,7 +37,8 @@ ENV PATH=/opt/conda/envs/orange3/bin:$PATH
 ENV DISPLAY=:0
 
 # Copy app data (optional)
-COPY ./data/ /data/
+# If volume...
+# COPY ./data/ /data/
 
 # Init script
 COPY --chmod=755 init.sh /app/init.sh
