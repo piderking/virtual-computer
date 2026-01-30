@@ -37,9 +37,10 @@ RUN mkdir -p $HOME/.vnc && \
 
 # Install Nerd Font (FiraCode) for terminal
 RUN mkdir -p /usr/share/fonts/truetype/nerdfonts && \
-    wget -qO- https://github.com/ryanoasis/nerd-fonts/releases/download/v3.0.2/FiraCode.zip \
-    | bsdtar -xvf- -C /usr/share/fonts/truetype/nerdfonts && \
-    fc-cache -fv
+    wget -qO /tmp/FiraCode.zip https://github.com/ryanoasis/nerd-fonts/releases/download/v3.0.2/FiraCode.zip && \
+    unzip /tmp/FiraCode.zip -d /usr/share/fonts/truetype/nerdfonts && \
+    fc-cache -fv && \
+    rm /tmp/FiraCode.zip
 
 # Install Orange (latest stable via pip)
 RUN pip3 install --no-cache-dir orange3
