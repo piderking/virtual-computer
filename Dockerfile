@@ -4,8 +4,6 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV USER=root
 ENV HOME=/root
 ENV DISPLAY=:0
-ENV VNC_PASSWORD=railway
-ENV PORT=8080
 
 # Install essentials, VNC, Fluxbox, fonts, clipboard, Orange dependencies
 RUN apt-get update && apt-get install -y \
@@ -17,6 +15,7 @@ RUN apt-get update && apt-get install -y \
     xclip \
     wget \
     unzip \
+    git \
     ca-certificates \
     fontconfig \
     locales \
@@ -29,11 +28,6 @@ RUN locale-gen en_US.UTF-8
 ENV LANG=en_US.UTF-8
 ENV LANGUAGE=en_US:en
 ENV LC_ALL=en_US.UTF-8
-
-# VNC password
-RUN mkdir -p $HOME/.vnc && \
-    echo $VNC_PASSWORD | vncpasswd -f > $HOME/.vnc/passwd && \
-    chmod 600 $HOME/.vnc/passwd
 
 # Install Nerd Font (FiraCode) for terminal
 RUN mkdir -p /usr/share/fonts/truetype/nerdfonts && \
@@ -49,8 +43,8 @@ RUN pip3 install --no-cache-dir orange3
 COPY init.sh /init.sh
 RUN chmod +x /init.sh
 
-# Expose Railway port
-EXPOSE $PORT
+# Expose Railway port (will be set via env var)
+EXPOSE 8080
 
 # Start container
 CMD ["/init.sh"]
