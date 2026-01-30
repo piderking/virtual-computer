@@ -10,14 +10,23 @@ mkdir -p $HOME/.vnc
 echo $VNC_PASSWORD | vncpasswd -f > $HOME/.vnc/passwd
 chmod 600 $HOME/.vnc/passwd
 
+# Create VNC startup script (runs when VNC starts)
+cat > $HOME/.vnc/xstartup <<'EOF'
+#!/bin/bash
+unset SESSION_MANAGER
+unset DBUS_SESSION_BUS_ADDRESS
+exec fluxbox
+EOF
+chmod +x $HOME/.vnc/xstartup
+
 # Kill previous VNC sessions
 vncserver -kill :0 2>/dev/null || true
 
-# Start VNC server
-vncserver :0 -geometry 1920x1080 -depth 24
+# Start VNC server (this will auto-start fluxbox via xstartup)
+vncserver :0 -geometry 1920x1080 -depth 24 -localhost no
 
-# Start Fluxbox window manager
-fluxbox &
+# Wait for VNC to be ready
+sleep 3
 
 # Clipboard sync: VNC clipboard -> system clipboard
 while true; do
@@ -31,11 +40,11 @@ mkdir -p ~/.local/share
 ln -sf /data/orange-data ~/.local/share/Orange 2>/dev/null || true
 
 # Start Orange automatically
-python3 -m Orange.canvas &
+DISPLAY=:0 python3 -m Orange.canvas &
 
 # Setup terminal shortcut on desktop
 mkdir -p ~/Desktop
-cat > ~/Desktop/Terminal.desktop <<'EOF'
+cat > ~/Desktop/Terminal.desktop <<'DESKTOP_EOF'
 [Desktop Entry]
 Version=1.0
 Type=Application
@@ -45,22 +54,25 @@ Exec=xterm -fa 'FiraCode Nerd Font' -fs 14
 Icon=utilities-terminal
 Terminal=false
 Categories=System;
-EOF
+DESKTOP_EOF
 chmod +x ~/Desktop/Terminal.desktop
 
 # Install noVNC to persistent volume if not present
 if [ ! -d /data/novnc ]; then
     echo "Installing noVNC to persistent volume..."
     git clone https://github.com/novnc/noVNC.git /data/novnc
+    git clone https://github.com/novnc/websockify /data/novnc/utils/websockify
 fi
 
 # Start noVNC web interface from persistent volume
-/data/novnc/utils/websockify/run $PORT localhost:5900 &
+cd /data/novnc
+./utils/novnc_proxy --vnc localhost:5900 --listen $PORT &
 
 echo "=========================================="
 echo "VNC + Orange is ready!"
 echo "PORT: $PORT"
 echo "Access via your Railway public URL"
+echo "Navigate to /vnc.html"
 echo "=========================================="
 
 wait
