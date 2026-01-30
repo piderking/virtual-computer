@@ -48,9 +48,6 @@ RUN pip3 install --no-cache-dir orange3
 COPY init.sh /init.sh
 RUN chmod +x /init.sh
 
-# Mount volume
-VOLUME ["/data"]
-
 # Expose Railway port
 EXPOSE $PORT
 
