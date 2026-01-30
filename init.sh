@@ -1,28 +1,43 @@
-#!/usr/bin/env bash
+#!/bin/bash
 set -e
 
-# Railway ALWAYS injects this
-if [[ -z "$PORT" ]]; then
-  echo "ERROR: PORT not set by Railway"
-  exit 1
-fi
+# Kill previous VNC sessions
+vncserver -kill :0 2>/dev/null || true
 
-# Require password (set in Railway Variables)
-if [[ -z "$NOVNC_PASSWORD" ]]; then
-  echo "ERROR: NOVNC_PASSWORD not set"
-  exit 1
-fi
+# Start VNC server
+vncserver :0 -geometry 1920x1080 -depth 24
 
-# VNC password
-mkdir -p ~/.vnc
-echo "$NOVNC_PASSWORD" | vncpasswd -f > ~/.vnc/passwd
-chmod 600 ~/.vnc/passwd
+# Start Fluxbox window manager
+fluxbox &
 
-# Start VNC (local only)
-vncserver :0 -geometry 1280x800
+# Clipboard sync: VNC clipboard -> system clipboard
+while true; do
+    sleep 1
+    xclip -selection clipboard -o 2>/dev/null | xclip -selection primary -i 2>/dev/null
+done &
 
-# Start noVNC on Railway port
-exec /usr/share/novnc/utils/novnc_proxy \
-  --listen "$PORT" \
-  --vnc localhost:5900 \
-  --web /usr/share/novnc
+# Start Orange automatically
+python3 -m Orange.canvas &
+
+# Setup terminal shortcut on desktop
+mkdir -p ~/Desktop
+cat > ~/Desktop/Terminal.desktop <<'EOF'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Terminal
+Comment=Terminal Emulator
+Exec=xterm -fa 'FiraCode Nerd Font' -fs 14
+Icon=utilities-terminal
+Terminal=false
+Categories=System;
+EOF
+chmod +x ~/Desktop/Terminal.desktop
+
+# Start noVNC web interface
+cd /usr/share/novnc
+git clone https://github.com/novnc/noVNC.git /usr/share/novnc 2>/dev/null || true
+/usr/share/novnc/utils/websockify/run $PORT localhost:5900 &
+
+echo "VNC + Orange is ready. Open: http://localhost:$PORT/vnc.html?host=localhost&port=$PORT"
+wait
