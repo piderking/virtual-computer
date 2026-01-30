@@ -11,7 +11,7 @@ ARG PYTHON_VERSION=3.10
 ENV DEBIAN_FRONTEND=noninteractive
 WORKDIR /app
 
-# System deps
+# System dependencies
 RUN apt-get update && apt-get install -y \
     tigervnc-standalone-server=${TIGERVNC_VERSION} \
     fluxbox=${FLUXBOX_VERSION} \
@@ -20,30 +20,26 @@ RUN apt-get update && apt-get install -y \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# noVNC
-RUN wget -q https://github.com/novnc/noVNC/archive/refs/tags/v${NOVNC_VERSION}.zip && \
+# Install noVNC
+RUN wget https://github.com/novnc/noVNC/archive/refs/tags/v${NOVNC_VERSION}.zip && \
     unzip v${NOVNC_VERSION}.zip -d /usr/share && \
     mv /usr/share/noVNC-${NOVNC_VERSION} /usr/share/novnc && \
-    rm v${NOVNC_VERSION}.zip && \
-    apt-get purge -y unzip && apt-get autoremove -y
+    rm v${NOVNC_VERSION}.zip
 
-ENV PATH=/usr/share/novnc/utils:/opt/conda/envs/orange3/bin:$PATH
+ENV PATH=/usr/share/novnc/utils:$PATH
 
-# Conda env (no conda init)
-RUN conda create -n orange3 python=${PYTHON_VERSION} \
-    orange3=${ORANGE3_VERSION} "catboost=*=*cpu*" -y && \
+# Install Orange3
+RUN conda create -n orange3 python=${PYTHON_VERSION} -y && \
+    conda install -n orange3 orange3=${ORANGE3_VERSION} "catboost=*=*cpu*" -y && \
     conda clean -afy
 
-# Runtime env
-ENV DISPLAY=:0 \
-    SHARED=0 \
-    PORT=6080
+ENV PATH=/opt/conda/envs/orange3/bin:$PATH
+ENV DISPLAY=:0
 
-EXPOSE 6080
+# Copy app data (optional)
+COPY ./data/ /data/
 
-# Optional data
-COPY ./dat[a]/ /data/
+# Init script
+COPY --chmod=755 init.sh /app/init.sh
 
-# Entrypoint
-COPY --chmod=700 init.sh /app/init.sh
 ENTRYPOINT ["/app/init.sh"]
